@@ -1,37 +1,28 @@
 package localizationExcelParser
 
 import (
-	"encoding/json"
-	"os"
 	"reflect"
 	"strconv"
 
 	"github.com/xuri/excelize/v2"
 )
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
-func ToExcel(path *string, output *string) {
+func SaveAsExcel(filePath *string, localization *Localization) {
 	letters := []rune{}
 	for ch := 'A'; ch <= 'Z'; ch++ {
 		letters = append(letters, ch)
 	}
 	f := excelize.NewFile()
-	model := loadModel(path)
-	for _, scope := range model.Scopes {
+	for _, scope := range localization.Scopes {
 		f.NewSheet(scope.Name)
 		f.SetCellValue(scope.Name, "A1", "Beschreibung")
 		f.SetCellValue(scope.Name, "B1", "Key")
-		for i, lang := range model.Languages {
+		for i, lang := range localization.Languages {
 			f.SetCellValue(scope.Name, string(letters[2:][i])+"1", lang.Code)
 		}
 	}
 	f.DeleteSheet("Sheet1")
-	for _, scope := range model.Scopes {
+	for _, scope := range localization.Scopes {
 		i := 2
 		for _, value := range scope.Entries {
 			check(f.SetCellValue(scope.Name, "B"+strconv.Itoa(i), value.Key))
@@ -44,13 +35,13 @@ func ToExcel(path *string, output *string) {
 			i += 1
 		}
 	}
-	error := f.SaveAs(*output)
+	error := f.SaveAs(*filePath)
 	check(error)
 	f.Close()
 }
 
-func FromExcel(path *string, output *string, defaultLang string) {
-	f, error := excelize.OpenFile(*path)
+func LoadFromExcel(filePath *string, defaultLang string) *Localization {
+	f, error := excelize.OpenFile(*filePath)
 	check(error)
 
 	sheets := f.GetSheetList()
@@ -90,8 +81,8 @@ func FromExcel(path *string, output *string, defaultLang string) {
 		}
 		localization.Scopes = append(localization.Scopes, scope)
 	}
-	saveModel(output, &localization)
 	f.Close()
+	return &localization
 }
 
 func getLanguages(f *excelize.File, offset int) []string {
@@ -109,19 +100,4 @@ func getLanguages(f *excelize.File, offset int) []string {
 		strkeys[i] = keys[i].String()
 	}
 	return strkeys
-}
-
-func loadModel(modelPath *string) *Localization {
-	jsonData, err := os.ReadFile(*modelPath)
-	check(err)
-	var localization Localization
-	error := json.Unmarshal(jsonData, &localization)
-	check(error)
-	return &localization
-}
-
-func saveModel(modelPath *string, localization *Localization) {
-	json, err := json.MarshalIndent(localization, "", "  ")
-	check(err)
-	os.WriteFile(*modelPath, json, 0644)
 }

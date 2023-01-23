@@ -1,27 +1,21 @@
 package localizationExcelParser
 
-type Localization struct {
-	Scopes    []LocalizationScope `json:"scopes"`
-	Languages []Language          `json:"langs"`
+import (
+	"encoding/json"
+	"os"
+)
+
+func SaveAsJson(filePath *string, localization *Localization) {
+	json, err := json.MarshalIndent(localization, "", "  ")
+	check(err)
+	os.WriteFile(*filePath, json, 0644)
 }
 
-type LocalizationScope struct {
-	Name    string              `json:"name"`
-	Entries []LocalizationEntry `json:"entries"`
-}
-
-type LocalizationEntry struct {
-	Key          string        `json:"key"`
-	Description  string        `json:"description"`
-	Translations []Translation `json:"translations"`
-}
-
-type Translation struct {
-	Language string `json:"lang"`
-	Value    string `json:"value"`
-}
-
-type Language struct {
-	Code      string `json:"code"`
-	IsDefault bool   `json:"isDefault"`
+func LoadfromJson(filePath *string) *Localization {
+	jsonData, err := os.ReadFile(*filePath)
+	check(err)
+	var localization Localization
+	error := json.Unmarshal(jsonData, &localization)
+	check(error)
+	return &localization
 }
